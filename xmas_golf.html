@@ -1,5 +1,5 @@
 <style>
-body{ background:#006;}
+body{ background:#000;}
 </style>
 <body>
   <script>
@@ -11,7 +11,7 @@ hitMaxX = width - hitMinX,
 hitMinY = 100, //(height - logoHeight) / 2,
 hitMaxY = width - hitMinY,
 time,
-wind = 0,
+wind = 0, wind1 = 0, wind2 = 0,
 flakes = [],
 floorDepth = 200,
 logo = new Image();
@@ -26,16 +26,16 @@ function createCanvas(w,h) {
 }
 
 var stage = createCanvas(width, height);
-var hit = createCanvas(logoWidth, logoHeight);
-var snow = createCanvas(width, height);
-var pile = createCanvas(logoWidth, logoHeight); // this is the melting snow.
+var hit = createCanvas(logoWidth, logoHeight); // this is the logo hitmap
+var snow = createCanvas(width, height); // this is the landed snow 
+var pile = createCanvas(logoWidth, logoHeight); // this is the melting snow hitmap.
 pile.ctx.fillStyle = "#fff";
 pile.ctx.fillRect(0, 0, logoWidth, logoHeight);
 
 document.body.appendChild(stage.canvas);
-document.body.appendChild(snow.canvas);
-document.body.appendChild(hit.canvas);
-document.body.appendChild(pile.canvas);
+// document.body.appendChild(snow.canvas);
+// document.body.appendChild(hit.canvas);
+// document.body.appendChild(pile.canvas);
 
 var ctx = stage.ctx;
 
@@ -55,11 +55,13 @@ function createFlake(index) {
 
   var brightness = (150 + ~~(Math.random() * 105));
 
+  var pos = Math.random();
+  pos = pos > 0.9 ? "left" : pos < 0.1 ? "right" : "top";
 
   return {
     index: index,
-    x: ~~(Math.random() * width),
-    y: -10,
+    x: pos == "top" ? Math.random() * width : pos == "left" ? -10 : width + 10,
+    y: pos == "top" ? -10 : Math.random() * (height - floorDepth),
     moving: true,
 
     maxHits: ~~(Math.random() * 4),
@@ -75,6 +77,9 @@ function createFlake(index) {
     move: function() {
       this.y += 0.5 + this.speed;
       this.x += wind + Math.sin(this.offset + this.speed * 0.001 * time) * this.oscillation;
+
+      if (this.x < 0) this.x += width;
+      if (this.x > width) this.x -= width;
 
       ctx.fillStyle = this.colour;
       ctx.fillRect(this.x, this.y, 1, 1);
@@ -189,6 +194,18 @@ function drawTriangle(x, y, triangleWidth, triangleHeight, fillStyle){
 
 function render(_time) {
   time = _time;
+
+
+  // con.log(wind1);
+  if (wind1 > 4) {
+    wind2 = -Math.random();
+  } else if (wind1 < -4) {
+    wind2 = Math.random();
+  } else {
+    wind2 = (Math.random() - 0.5) * 0.5;
+  }
+  wind1 += wind2;
+  wind -= (wind - wind1) * 0.1;
 
   if (Math.round(time/100) % 5 == 0) {
     // con.log("fade");
