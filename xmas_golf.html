@@ -1,14 +1,20 @@
 <style>
-body{ background:#040;}
+body{ background:#000;}
 </style>
 <body>
   <script>
 var con = console;
-var width = 720, height = 200,
-bmpWidth = 720, bmpHeight = 170,
+var width = 1000, height = 600,
+bmpWidth = 700, bmpHeight = 200,
+hitMinX = (width - bmpWidth) / 2,
+hitMaxX = width - hitMinX,
+hitMinY = 100, //(height - bmpHeight) / 2,
+hitMaxY = width - hitMinY,
 time,
 // floor = [],
-flakes = [];
+flakes = [],
+floorDepth = 200;
+
 
 function createCanvas(w,h) {
   var canvas = document.createElement("canvas");
@@ -18,15 +24,15 @@ function createCanvas(w,h) {
   return {canvas:canvas,ctx:ctx}
 }
 
-var stage = createCanvas(width,height);
-var hit = createCanvas(width,height);
-var snow = createCanvas(width,height);
+var stage = createCanvas(width, height);
+var hit = createCanvas(bmpWidth, bmpHeight);
+var snow = createCanvas(width, height);
 
 document.body.appendChild(stage.canvas);
-document.body.appendChild(snow.canvas);
+// document.body.appendChild(snow.canvas);
 
 
-var debug = document.createElement("div"); document.body.appendChild(debug); debug.innerHTML = "debug only"; debug.style.color = "white"; document.body.appendChild(hit.canvas);
+// var debug = document.createElement("div"); document.body.appendChild(debug); debug.innerHTML = "debug only"; debug.style.color = "white"; document.body.appendChild(hit.canvas);
 var ctx = stage.ctx;
 
 // for (var i = 0; i < width;i++) {
@@ -63,41 +69,41 @@ function createFlake(index) {
       var intX = ~~this.x;
       var intY = ~~this.y;
 
-
-      // if (this.y > height - floor[this.x] ) {
-
-      var pixelIndex = (intY * width + intX) * 4;
-
-      var seekingRed = this.hits % 2 == 0 ? 0 : 255;
-
-      //con.log("imageData.data[pixelIndex]", seekingRed, imageData.data[pixelIndex]);
-
-      var overshoot = Math.random() * 30;
+      var overshoot = Math.random() * floorDepth;
       if (intY > height - overshoot) {
-        this.colour = "rgba(" + [brightness,brightness,brightness].join(",") + "," + (30-overshoot)/30 + ")";
+        // this.colour = "rgba(" + [brightness,brightness,brightness].join(",") + "," + (floorDepth - overshoot) / floorDepth + ")";
         this.stop();
         return;
       }
 
-      if (imageData.data[pixelIndex] == seekingRed ) { // we've hit black. or white.
+      var seekingRed = this.hits % 2 == 0 ? 0 : 255;
 
-        this.hits++;
+      var pixelIndex = ((intY - hitMinY) * bmpWidth + (intX - hitMinX) ) * 4;
 
-        if ( this.hits == this.maxHits ) {
+      // 
 
-          this.stop();
+      if (intX > hitMinX && intX < hitMaxX && intY > hitMinY && intY < hitMaxY) {
+        // con.log('ok');
+        if (imageData.data[pixelIndex] == seekingRed ) { // we've hit black. or white.
 
-          hit.ctx.fillStyle = "rgba(" + seekingRed + "," + seekingRed + "," + seekingRed + ",1)";
-          hit.ctx.fillRect(intX, intY + (seekingRed == 0 ? -1 : 0), 1, 1);
+          this.hits++;
 
-          // var spread = 10;
-          // for(var i = -spread; i < spread; i++){
-          //   floor[this.x + i] += ((spread + 1) - Math.abs(i)) * 0.05
-          // }
+          if ( this.hits == this.maxHits ) {
 
+            this.stop();
+
+            hit.ctx.fillStyle = "rgba(" + seekingRed + "," + seekingRed + "," + seekingRed + ",1)";
+            hit.ctx.fillRect(intX - hitMinX, intY - hitMinY + (seekingRed == 0 ? -1 : 0), 1, 1);
+
+            // var spread = 10;
+            // for(var i = -spread; i < spread; i++){
+            //   floor[this.x + i] += ((spread + 1) - Math.abs(i)) * 0.05
+            // }
+
+          }
         }
-
       }
+
     },
     stop: function () {
 
@@ -161,10 +167,11 @@ function drawTriangle(x, y, triangleWidth, triangleHeight, fillStyle){
 
 function render(_time) {
   time = _time;
-  imageData = hit.ctx.getImageData(0, 0, width, height);
+  imageData = hit.ctx.getImageData(0, 0, bmpWidth, bmpHeight);
 
-  if (flakes.length < 1000 && Math.random() > 0.1) {
-    for (var i = 0; i < 300; i++) flakes.push( createFlake(flakes.length) );
+  if (flakes.length < 2000) {
+    for (var i = 0; i < 3; i++) 
+      flakes.push( createFlake(flakes.length) );
   }
 
   ctx.clearRect(0,0,width,height);
@@ -203,8 +210,8 @@ function render(_time) {
 var img = new Image();
 img.onload = function() {
   hit.ctx.drawImage(img,0,0);
-  hit.ctx.fillStyle = "#fff";
-  hit.ctx.fillRect(0,height-30,width,30)
+  // hit.ctx.fillStyle = "#fff";
+  // hit.ctx.fillRect(0,,width,30)
   render(0);
 }
 img.src = "at_logo.gif";
