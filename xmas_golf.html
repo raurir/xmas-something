@@ -5,7 +5,8 @@ body{ background:#000;}
   <script>
 var con = console;
 var width = 720,
-height = 200,
+height = 170,
+time,
 // floor = [],
 pile = [],
 snow = [];
@@ -14,7 +15,6 @@ function createCanvas(w,h) {
   var canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  document.body.appendChild(canvas);
   var ctx = canvas.getContext("2d");
   return {canvas:canvas,ctx:ctx}
 }
@@ -23,7 +23,7 @@ var hit = createCanvas(width,height);
 
 var stage = createCanvas(width,height);
 document.body.appendChild(stage.canvas);
-var debug = document.createElement("div"); document.body.appendChild(debug); debug.innerHTML = "debug only"; debug.style.color = "white"; document.body.appendChild(hit.canvas);
+// var debug = document.createElement("div"); document.body.appendChild(debug); debug.innerHTML = "debug only"; debug.style.color = "white"; document.body.appendChild(hit.canvas);
 var ctx = stage.ctx;
 
 // for (var i = 0; i < width;i++) {
@@ -31,45 +31,75 @@ var ctx = stage.ctx;
 // }
 
 function createFlake(index) {
+
+  var brightness = (100 + ~~(Math.random() * 155)).toString(16);
+  var colour = "#" + [brightness,brightness,brightness].join("");
   return {
     index: index,
     x: ~~(Math.random() * width),
     y: -10,
     moving: true,
+
+    maxHits: ~~(Math.random() * 4),
+    hits: 0,
+
+    speed: Math.random() * 0.001,
+    oscillation: Math.random() * 2,
+    offset: Math.random() * 1e5,
+
+    colour: colour,
+
     move: function() {
       this.y += 1;
-      this.draw();
+      this.x += Math.sin(this.offset + this.speed * time) * this.oscillation;
+
+      ctx.fillStyle = this.colour;
+      ctx.fillRect(this.x, this.y, 1, 1);
+
+      var intX = ~~this.x;
+      var intY = ~~this.y;
+
+
       // if (this.y > height - floor[this.x] ) {
 
-      var pixelIndex = (this.y * width + this.x) * 4;
+      var pixelIndex = (intY * width + intX) * 4;
 
-      //con.log("imageData.data[pixelIndex]", imageData.data[pixelIndex])
+      var seekingRed = this.hits % 2 == 0 ? 0 : 255;
 
-      if (imageData.data[pixelIndex] == 0 ) { // we've hit black.
+      //con.log("imageData.data[pixelIndex]", seekingRed, imageData.data[pixelIndex]);
+
+      if (intY > height ) {
         this.stop();
+        return;
+      }
 
-        var hitX = this.x, hitY = this.y - 2;
+      if (imageData.data[pixelIndex] == seekingRed ) { // we've hit black.
 
-        hit.ctx.fillStyle = "red";
-        hit.ctx.fillRect(hitX, hitY, 2, 2);
+        this.hits++;
 
-        // var spread = 10;
-        // for(var i = -spread; i < spread; i++){
-        //   floor[this.x + i] += ((spread + 1) - Math.abs(i)) * 0.05
-        // }
+        if ( this.hits == this.maxHits ) {
 
-        pile.push([hitX, hitY]);
+          this.stop();
 
-        snow[index] = createFlake(index);
+          hit.ctx.fillStyle = "rgba(" + seekingRed + "," + seekingRed + "," + seekingRed + ",1)";
+          hit.ctx.fillRect(intX, intY - 1, 1, 1);
+
+          // var spread = 10;
+          // for(var i = -spread; i < spread; i++){
+          //   floor[this.x + i] += ((spread + 1) - Math.abs(i)) * 0.05
+          // }
+
+          pile.push([intX, intY - 1, this.colour]);
+
+        }
+
       }
     },
     stop: function () {
       this.moving = false;
+      snow[index] = createFlake(index);
     },
-    draw: function() {
-      ctx.fillStyle = "white";
-      ctx.fillRect(this.x, this.y, 2, 2)
-    }
+
   }
 }
 
@@ -120,14 +150,12 @@ function drawTriangle(x, y, triangleWidth, triangleHeight, fillStyle){
   ctx.fill();
 }
 
-function render() {
-
+function render(_time) {
+  time = _time;
   imageData = hit.ctx.getImageData(0, 0, width, height);
 
-
-  // con.log("render")
-  if (snow.length < 100 && Math.random() > 0.3) {
-    snow.push( createFlake(snow.length) );
+  if (snow.length < 6000 && Math.random() > 0.1) {
+    for (var i = 0; i < 30; i++) snow.push( createFlake(snow.length) );
   }
 
   ctx.clearRect(0,0,width,height);
@@ -136,7 +164,8 @@ function render() {
   //   ctx.fillRect(i, height, 1, -floor[i]);
   // }
   for (var i = 0, il = pile.length; i < il;i++) {
-    ctx.fillRect(pile[i][0], pile[i][1], 2, 2);
+    ctx.fillStyle = pile[i][2];
+    ctx.fillRect(pile[i][0], pile[i][1], 1, 1);
   }
 
 
@@ -172,8 +201,10 @@ function render() {
 }
 var img = new Image();
 img.onload = function() {
-  hit.ctx.drawImage(img,0,0)
-  render();
+  hit.ctx.drawImage(img,0,0);
+  hit.ctx.fillStyle = "#000";
+  hit.ctx.fillRect(0,height,width,-10)
+  render(0);
 }
 img.src = "at_logo.gif";
 
