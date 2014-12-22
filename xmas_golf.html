@@ -1,0 +1,180 @@
+<style>
+body{ background:#000;}
+</style>
+<body>
+  <script>
+var con = console;
+var width = 720,
+height = 200,
+// floor = [],
+pile = [],
+snow = [];
+
+function createCanvas(w,h) {
+  var canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  document.body.appendChild(canvas);
+  var ctx = canvas.getContext("2d");
+  return {canvas:canvas,ctx:ctx}
+}
+
+var hit = createCanvas(width,height);
+
+var stage = createCanvas(width,height);
+document.body.appendChild(stage.canvas);
+var debug = document.createElement("div"); document.body.appendChild(debug); debug.innerHTML = "debug only"; debug.style.color = "white"; document.body.appendChild(hit.canvas);
+var ctx = stage.ctx;
+
+// for (var i = 0; i < width;i++) {
+//   floor[i] = 0;
+// }
+
+function createFlake(index) {
+  return {
+    index: index,
+    x: ~~(Math.random() * width),
+    y: -10,
+    moving: true,
+    move: function() {
+      this.y += 1;
+      this.draw();
+      // if (this.y > height - floor[this.x] ) {
+
+      var pixelIndex = (this.y * width + this.x) * 4;
+
+      //con.log("imageData.data[pixelIndex]", imageData.data[pixelIndex])
+
+      if (imageData.data[pixelIndex] == 0 ) { // we've hit black.
+        this.stop();
+
+        var hitX = this.x, hitY = this.y - 2;
+
+        hit.ctx.fillStyle = "red";
+        hit.ctx.fillRect(hitX, hitY, 2, 2);
+
+        // var spread = 10;
+        // for(var i = -spread; i < spread; i++){
+        //   floor[this.x + i] += ((spread + 1) - Math.abs(i)) * 0.05
+        // }
+
+        pile.push([hitX, hitY]);
+
+        snow[index] = createFlake(index);
+      }
+    },
+    stop: function () {
+      this.moving = false;
+    },
+    draw: function() {
+      ctx.fillStyle = "white";
+      ctx.fillRect(this.x, this.y, 2, 2)
+    }
+  }
+}
+
+function drawCircle(x, y, rad){
+  ctx.beginPath();
+  ctx.arc(x, y, rad, 0, 2*Math.PI);
+  ctx.fill();
+}
+
+
+function drawRect(x, y, width, height){
+  ctx.strokeStyle="white";
+  ctx.fillRect(x, y, width, height);
+  ctx.stroke();
+}
+
+function drawStar(x, y, r, p, m) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.translate(x, y);
+  ctx.moveTo(0,0-r);
+  for (var i = 0; i < p; i++)
+  {
+    ctx.rotate(Math.PI / p);
+    ctx.lineTo(0, 0 - (r*m));
+    ctx.rotate(Math.PI / p);
+    ctx.lineTo(0, 0 - r);
+  }
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawTree() {
+  ctx.beginPath();
+  ctx.moveTo(25,25);
+  ctx.lineTo(105,25);
+  ctx.lineTo(25,105);
+  ctx.fill();
+}
+
+function drawTriangle(x, y, triangleWidth, triangleHeight, fillStyle){
+  ctx.beginPath();
+  ctx.moveTo(x, y);
+  ctx.lineTo(x + triangleWidth / 2, y + triangleHeight);
+  ctx.lineTo(x - triangleWidth / 2, y + triangleHeight);
+  ctx.closePath();
+  // ctx.fillStyle = fillStyle;
+  ctx.fill();
+}
+
+function render() {
+
+  imageData = hit.ctx.getImageData(0, 0, width, height);
+
+
+  // con.log("render")
+  if (snow.length < 100 && Math.random() > 0.3) {
+    snow.push( createFlake(snow.length) );
+  }
+
+  ctx.clearRect(0,0,width,height);
+
+  // for (var i = 0; i < width;i++) {
+  //   ctx.fillRect(i, height, 1, -floor[i]);
+  // }
+  for (var i = 0, il = pile.length; i < il;i++) {
+    ctx.fillRect(pile[i][0], pile[i][1], 2, 2);
+  }
+
+
+  for (var i = 0; i < snow.length;i++) {
+    if (snow[i].moving) snow[i].move();
+  }
+
+  /*
+  drawCircle(100, 180, 40);
+  drawCircle(100, 140, 30);
+  drawCircle(100, 100, 25);
+
+  ctx.fillStyle = "black";
+  drawCircle(92, 92, 5);
+  drawCircle(108, 92, 5);
+
+  // drawHeart(108, 94)
+  ctx.fillStyle = "white";
+  drawRect(295, 170, 15, 30);
+  ctx.fillStyle = "green";
+  drawTriangle(300, 135, 140, 50);
+  drawTriangle(300, 110, 115, 50);
+  drawTriangle(300, 85, 90, 50);
+  drawTriangle(300, 55, 60, 50);
+
+  ctx.fillStyle = "yellow";
+  drawStar(300, 50, 15, 5, 0.3)
+
+  ctx.fillStyle = "white";
+
+  */
+  requestAnimationFrame(render);
+}
+var img = new Image();
+img.onload = function() {
+  hit.ctx.drawImage(img,0,0)
+  render();
+}
+img.src = "at_logo.gif";
+
+</script></body>
