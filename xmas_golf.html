@@ -1,19 +1,20 @@
 <style>
-body{ background:#000;}
+body{ background:#006;}
 </style>
 <body>
   <script>
 var con = console;
 var width = 1000, height = 600,
-bmpWidth = 700, bmpHeight = 200,
-hitMinX = (width - bmpWidth) / 2,
+logoWidth = 700, logoHeight = 200,
+hitMinX = (width - logoWidth) / 2,
 hitMaxX = width - hitMinX,
-hitMinY = 100, //(height - bmpHeight) / 2,
+hitMinY = 100, //(height - logoHeight) / 2,
 hitMaxY = width - hitMinY,
 time,
-// floor = [],
+wind = 0,
 flakes = [],
-floorDepth = 200;
+floorDepth = 200,
+logo = new Image();
 
 
 function createCanvas(w,h) {
@@ -25,24 +26,36 @@ function createCanvas(w,h) {
 }
 
 var stage = createCanvas(width, height);
-var hit = createCanvas(bmpWidth, bmpHeight);
+var hit = createCanvas(logoWidth, logoHeight);
 var snow = createCanvas(width, height);
+var pile = createCanvas(logoWidth, logoHeight); // this is the melting snow.
+pile.ctx.fillStyle = "#fff";
+pile.ctx.fillRect(0, 0, logoWidth, logoHeight);
 
 document.body.appendChild(stage.canvas);
-// document.body.appendChild(snow.canvas);
+document.body.appendChild(snow.canvas);
+document.body.appendChild(hit.canvas);
+document.body.appendChild(pile.canvas);
 
-
-// var debug = document.createElement("div"); document.body.appendChild(debug); debug.innerHTML = "debug only"; debug.style.color = "white"; document.body.appendChild(hit.canvas);
 var ctx = stage.ctx;
 
 // for (var i = 0; i < width;i++) {
 //   floor[i] = 0;
 // }
 
+function getShade(brightness) {
+  return "#" + [brightness,brightness,brightness].map(function(v) { 
+    var str = v.toString(16);
+    if (str.length == 1) str = "0" + str;
+    return str;
+  }).join("");
+}
+
 function createFlake(index) {
 
   var brightness = (150 + ~~(Math.random() * 105));
-  var colour = "#" + [brightness,brightness,brightness].map(function(v) { return v.toString(16);}).join("");
+
+
   return {
     index: index,
     x: ~~(Math.random() * width),
@@ -57,11 +70,11 @@ function createFlake(index) {
     offset: Math.random() * 1e5,
 
     brightness: brightness,
-    colour: colour,
+    colour: getShade(brightness),
 
     move: function() {
       this.y += 0.5 + this.speed;
-      this.x += Math.sin(this.offset + this.speed * 0.001 * time) * this.oscillation;
+      this.x += wind + Math.sin(this.offset + this.speed * 0.001 * time) * this.oscillation;
 
       ctx.fillStyle = this.colour;
       ctx.fillRect(this.x, this.y, 1, 1);
@@ -76,24 +89,32 @@ function createFlake(index) {
         return;
       }
 
-      var seekingRed = this.hits % 2 == 0 ? 0 : 255;
+      var seeking = this.hits % 2 == 0 ? "shade_of_grey" : "pure_white";
 
-      var pixelIndex = ((intY - hitMinY) * bmpWidth + (intX - hitMinX) ) * 4;
-
-      // 
+      var pixelIndex = ((intY - hitMinY) * logoWidth + (intX - hitMinX) ) * 4;
 
       if (intX > hitMinX && intX < hitMaxX && intY > hitMinY && intY < hitMaxY) {
-        // con.log('ok');
-        if (imageData.data[pixelIndex] == seekingRed ) { // we've hit black. or white.
+
+        var redChannel = imageData.data[pixelIndex];
+
+        if (
+          (seeking == "pure_white" && redChannel == 255) ||  // either travelling through a letter.
+          (seeking == "shade_of_grey" && redChannel < 255)  // or hitting the edge of a letter
+        ) {
 
           this.hits++;
 
-          if ( this.hits == this.maxHits ) {
+          if ( this.hits == this.maxHits && seeking == "shade_of_grey") { // we've hit the logo, place some snow.
 
             this.stop();
 
-            hit.ctx.fillStyle = "rgba(" + seekingRed + "," + seekingRed + "," + seekingRed + ",1)";
-            hit.ctx.fillRect(intX - hitMinX, intY - hitMinY + (seekingRed == 0 ? -1 : 0), 1, 1);
+            var brightness = redChannel - 5;
+            if (brightness < 0) brightness = 0;
+            var newColour = getShade(brightness);
+
+            // con.log("newColour", newColour);
+            pile.ctx.fillStyle = newColour
+            pile.ctx.fillRect(intX - hitMinX, intY - hitMinY - 1, 1, 1);
 
             // var spread = 10;
             // for(var i = -spread; i < spread; i++){
@@ -117,7 +138,7 @@ function createFlake(index) {
 
   }
 }
-
+/*
 function drawCircle(x, y, rad){
   ctx.beginPath();
   ctx.arc(x, y, rad, 0, 2*Math.PI);
@@ -164,10 +185,21 @@ function drawTriangle(x, y, triangleWidth, triangleHeight, fillStyle){
   // ctx.fillStyle = fillStyle;
   ctx.fill();
 }
+*/
 
 function render(_time) {
   time = _time;
-  imageData = hit.ctx.getImageData(0, 0, bmpWidth, bmpHeight);
+
+  if (Math.round(time/100) % 5 == 0) {
+    // con.log("fade");
+    pile.ctx.fillStyle = "rgba(255,255,255,0.1)";
+    pile.ctx.fillRect(0, 0, logoWidth, logoHeight);
+  }
+
+  hit.ctx.drawImage(pile.canvas,0,0);
+  hit.ctx.drawImage(logo,0,0);
+
+  imageData = hit.ctx.getImageData(0, 0, logoWidth, logoHeight);
 
   if (flakes.length < 2000) {
     for (var i = 0; i < 3; i++) 
@@ -207,13 +239,13 @@ function render(_time) {
   */
   requestAnimationFrame(render);
 }
-var img = new Image();
-img.onload = function() {
-  hit.ctx.drawImage(img,0,0);
+
+logo.onload = function() {
+  hit.ctx.drawImage(logo,0,0);
   // hit.ctx.fillStyle = "#fff";
   // hit.ctx.fillRect(0,,width,30)
   render(0);
 }
-img.src = "at_logo.gif";
+logo.src = "at_logo_transparent.gif";
 
 </script></body>
