@@ -1,5 +1,6 @@
 <style>
 body{ background:#000;}
+canvas {width:100%;}
 </style>
 <body>
   <script>
@@ -109,6 +110,7 @@ function createFlake(index) {
 
           this.hits++;
 
+          // if ( this.hits == this.maxHits) { // we've hit the logo, place some snow.
           if ( this.hits == this.maxHits && seeking == "shade_of_grey") { // we've hit the logo, place some snow.
 
             this.stop();
