@@ -12,12 +12,13 @@ hitMaxX = width - hitMinX,
 hitMinY = 100, //(height - logoHeight) / 2,
 hitMaxY = width - hitMinY,
 time,
-wind = 0, wind1 = 0, wind2 = 0,
+windX = 0, windX1 = 0, windX2 = 0,
+windY = 0, windY1 = 0, windY2 = 0,
 flakes = [],
 floorDepth = 200,
 logo = new Image();
 
-var santa = true;
+var santa = true; // ok, so you've seen this now. when is santa not santa? when he's satan of course!
 
 function createCanvas(w,h) {
   var canvas = document.createElement("canvas");
@@ -34,18 +35,21 @@ var pile = createCanvas(logoWidth, logoHeight); // this is the melting snow hitm
 pile.ctx.fillStyle = "#fff";
 pile.ctx.fillRect(0, 0, logoWidth, logoHeight);
 
+var wishes = createCanvas(width, 50); // this is the tagline
+wishes.ctx.font = "30px Verdana";
+wishes.ctx.fillStyle = "#000";
+var txt = "Merry Christmas and a Happy New Year";
+wishes.ctx.fillText(txt, 2, 40);
+var txtX = (width - wishes.ctx.measureText(txt).width) / 2;
+
 document.body.appendChild(stage.canvas);
-document.body.appendChild(snow.canvas);
+// document.body.appendChild(snow.canvas);
 // document.body.appendChild(hit.canvas);
-document.body.appendChild(pile.canvas);
+// document.body.appendChild(pile.canvas);
 
 var ctx = stage.ctx;
 
-// for (var i = 0; i < width;i++) {
-//   floor[i] = 0;
-// }
-
-function getShade(brightness) {
+function getColour(brightness) {
   var arr = santa ? [brightness,brightness,brightness] : [brightness,0,0];
   return "#" + arr.map(function(v) {
     var str = v.toString(16);
@@ -78,25 +82,48 @@ function createFlake(index) {
     offset: Math.random() * 1e5,
 
     brightness: brightness,
-    colour: getShade(brightness),
+    colour: getColour(brightness),
 
     move: function() {
-      this.y += 0.5 + this.speed;
-      this.x += wind + Math.sin(this.offset + this.speed * 0.001 * time) * this.oscillation;
 
-      // this.vx = this.x - this.px;
-      // this.vy = this.y - this.py;
+      var dx, dy;
+      if (santa) {
+        dx = windX + Math.sin(this.offset + this.speed * 0.001 * time) * this.oscillation;
+        dy = windY + 0.5 + this.speed;
+      } else {
+        dx = windX * 0.1;
+        dy = windY * 0.1 + 10 + this.speed * 15;
+      }
 
-      // this.px = this.x;
-      // this.py = this.y;
 
+      this.x += dx;
+      this.y += dy;
 
+      this.vx = this.x - this.px;
+      this.vy = this.y - this.py;
 
-      if (this.x < 0) this.x += width;
-      if (this.x > width) this.x -= width;
+      if (santa) {
+        if (this.x < 0) this.x += width;
+        if (this.x > width) this.x -= width;
+        ctx.fillStyle = this.colour;
+        ctx.fillRect(this.x, this.y, 1, 1);
+      } else {
+        if (this.px && this.py) {
 
-      ctx.fillStyle = this.colour;
-      ctx.fillRect(this.x, this.y, 1, 1);
+          var dropSize = 10;
+          for (var d = 0; d < dropSize; d++) {
+            var x = this.x - (this.x - this.px) * d * 0.5;
+            var y = this.y - (this.y - this.py) * d * 0.5;
+            var size = 1 + (dropSize - d) / 8;
+            ctx.fillStyle = this.colour;
+            ctx.fillRect(x - size / 2, y - size / 2, size, size);
+
+          }
+        }
+      }
+
+      this.px = this.x;
+      this.py = this.y;
 
       var intX = ~~this.x;
       var intY = ~~this.y;
@@ -135,7 +162,7 @@ function createFlake(index) {
             if (seeking == "shade_of_grey") {
               var brightness = redChannel - 5;
               if (brightness < 0) brightness = 0;
-              newColour = getShade(brightness);
+              newColour = getColour(brightness);
               y = intY - hitMinY - Math.random();
             }
 
@@ -170,20 +197,32 @@ function render(_time) {
   time = _time;
 
 
-  // con.log(wind1);
-  if (wind1 > 4) {
-    wind2 = -Math.random();
-  } else if (wind1 < -4) {
-    wind2 = Math.random();
+  // con.log(windX1);
+  if (windX1 > 4) {
+    windX2 = -Math.random();
+  } else if (windX1 < -4) {
+    windX2 = Math.random();
   } else {
-    wind2 = (Math.random() - 0.5) * 0.5;
+    windX2 = (Math.random() - 0.5) * 0.5;
   }
-  wind1 += wind2;
-  wind -= (wind - wind1) * 0.1;
+  windX1 += windX2;
+  windX -= (windX - windX1) * 0.1;
 
-  if (Math.round(time/100) % 15 == 0) {
+  if (windY1 > 4) {
+    windY2 = -Math.random();
+  } else if (windY1 < -2) {
+    windY2 = Math.random();
+  } else {
+    windY2 = (Math.random() - 0.5) * 0.5;
+  }
+  windY1 += windY2;
+  windY -= (windY - windY1) * 0.05;
+
+
+
+  if (Math.round(time/100) % 70 == 0) {
     // con.log("fade");
-    pile.ctx.fillStyle = "rgba(255,255,255,0.2)";
+    pile.ctx.fillStyle = "rgba(255,255,255,0.11)";
     pile.ctx.fillRect(0, 0, logoWidth, logoHeight);
   }
 
@@ -193,7 +232,7 @@ function render(_time) {
   imageData = hit.ctx.getImageData(0, 0, logoWidth, logoHeight);
 
   if (flakes.length < 2000) for (var i = 0; i < 3; i++) flakes.push( createFlake(flakes.length) );
-  // if (flakes.length < 10000) for (var i = 0; i < 300; i++) flakes.push( createFlake(flakes.length) );
+  // if (flakes.length < 20000) for (var i = 0; i < 1000; i++) flakes.push( createFlake(flakes.length) );
 
   ctx.clearRect(0,0,width,height);
   ctx.drawImage(snow.canvas, 0, 0);
@@ -202,13 +241,14 @@ function render(_time) {
     if (flakes[i].moving) flakes[i].move();
   }
 
+
+  ctx.drawImage(wishes.canvas, txtX, height - floorDepth);
+
   requestAnimationFrame(render);
 }
 
 logo.onload = function() {
   hit.ctx.drawImage(logo,0,0);
-  // hit.ctx.fillStyle = "#fff";
-  // hit.ctx.fillRect(0,,width,30)
   render(0);
 }
 logo.src = "at_logo_transparent.gif";
