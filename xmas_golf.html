@@ -17,6 +17,7 @@ flakes = [],
 floorDepth = 200,
 logo = new Image();
 
+var santa = true;
 
 function createCanvas(w,h) {
   var canvas = document.createElement("canvas");
@@ -28,15 +29,15 @@ function createCanvas(w,h) {
 
 var stage = createCanvas(width, height);
 var hit = createCanvas(logoWidth, logoHeight); // this is the logo hitmap
-var snow = createCanvas(width, height); // this is the landed snow 
+var snow = createCanvas(width, height); // this is the landed snow
 var pile = createCanvas(logoWidth, logoHeight); // this is the melting snow hitmap.
 pile.ctx.fillStyle = "#fff";
 pile.ctx.fillRect(0, 0, logoWidth, logoHeight);
 
 document.body.appendChild(stage.canvas);
-// document.body.appendChild(snow.canvas);
+document.body.appendChild(snow.canvas);
 // document.body.appendChild(hit.canvas);
-// document.body.appendChild(pile.canvas);
+document.body.appendChild(pile.canvas);
 
 var ctx = stage.ctx;
 
@@ -45,7 +46,8 @@ var ctx = stage.ctx;
 // }
 
 function getShade(brightness) {
-  return "#" + [brightness,brightness,brightness].map(function(v) { 
+  var arr = santa ? [brightness,brightness,brightness] : [brightness,0,0];
+  return "#" + arr.map(function(v) {
     var str = v.toString(16);
     if (str.length == 1) str = "0" + str;
     return str;
@@ -63,6 +65,9 @@ function createFlake(index) {
     index: index,
     x: pos == "top" ? Math.random() * width : pos == "left" ? -10 : width + 10,
     y: pos == "top" ? -10 : Math.random() * (height - floorDepth),
+    px: 0,
+    py: 0,
+
     moving: true,
 
     maxHits: ~~(Math.random() * 4),
@@ -78,6 +83,14 @@ function createFlake(index) {
     move: function() {
       this.y += 0.5 + this.speed;
       this.x += wind + Math.sin(this.offset + this.speed * 0.001 * time) * this.oscillation;
+
+      // this.vx = this.x - this.px;
+      // this.vy = this.y - this.py;
+
+      // this.px = this.x;
+      // this.py = this.y;
+
+
 
       if (this.x < 0) this.x += width;
       if (this.x > width) this.x -= width;
@@ -104,8 +117,8 @@ function createFlake(index) {
         var redChannel = imageData.data[pixelIndex];
 
         if (
-          (seeking == "pure_white" && redChannel == 255) ||  // either travelling through a letter.
-          (seeking == "shade_of_grey" && redChannel < 255)  // or hitting the edge of a letter
+          (seeking == "pure_white" && redChannel >= 200) ||  // either travelling through a letter.
+          (seeking == "shade_of_grey" && redChannel < 200)  // or hitting the edge of a letter
         ) {
 
           this.hits++;
@@ -115,13 +128,20 @@ function createFlake(index) {
 
             this.stop();
 
-            var brightness = redChannel - 5;
-            if (brightness < 0) brightness = 0;
-            var newColour = getShade(brightness);
+            var newColour = this.colour,
+            x = intX - hitMinX, //
+            y = intY - hitMinY;// - Math.random();
+
+            if (seeking == "shade_of_grey") {
+              var brightness = redChannel - 5;
+              if (brightness < 0) brightness = 0;
+              newColour = getShade(brightness);
+              y = intY - hitMinY - Math.random();
+            }
 
             // con.log("newColour", newColour);
-            pile.ctx.fillStyle = newColour
-            pile.ctx.fillRect(intX - hitMinX, intY - hitMinY - 1, 1, 1);
+            pile.ctx.fillStyle = newColour;
+            pile.ctx.fillRect(x, y, 1, 1);
 
             // var spread = 10;
             // for(var i = -spread; i < spread; i++){
@@ -145,54 +165,6 @@ function createFlake(index) {
 
   }
 }
-/*
-function drawCircle(x, y, rad){
-  ctx.beginPath();
-  ctx.arc(x, y, rad, 0, 2*Math.PI);
-  ctx.fill();
-}
-
-
-function drawRect(x, y, width, height){
-  ctx.strokeStyle="white";
-  ctx.fillRect(x, y, width, height);
-  ctx.stroke();
-}
-
-function drawStar(x, y, r, p, m) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.translate(x, y);
-  ctx.moveTo(0,0-r);
-  for (var i = 0; i < p; i++)
-  {
-    ctx.rotate(Math.PI / p);
-    ctx.lineTo(0, 0 - (r*m));
-    ctx.rotate(Math.PI / p);
-    ctx.lineTo(0, 0 - r);
-  }
-  ctx.fill();
-  ctx.restore();
-}
-
-function drawTree() {
-  ctx.beginPath();
-  ctx.moveTo(25,25);
-  ctx.lineTo(105,25);
-  ctx.lineTo(25,105);
-  ctx.fill();
-}
-
-function drawTriangle(x, y, triangleWidth, triangleHeight, fillStyle){
-  ctx.beginPath();
-  ctx.moveTo(x, y);
-  ctx.lineTo(x + triangleWidth / 2, y + triangleHeight);
-  ctx.lineTo(x - triangleWidth / 2, y + triangleHeight);
-  ctx.closePath();
-  // ctx.fillStyle = fillStyle;
-  ctx.fill();
-}
-*/
 
 function render(_time) {
   time = _time;
@@ -209,9 +181,9 @@ function render(_time) {
   wind1 += wind2;
   wind -= (wind - wind1) * 0.1;
 
-  if (Math.round(time/100) % 5 == 0) {
+  if (Math.round(time/100) % 15 == 0) {
     // con.log("fade");
-    pile.ctx.fillStyle = "rgba(255,255,255,0.1)";
+    pile.ctx.fillStyle = "rgba(255,255,255,0.2)";
     pile.ctx.fillRect(0, 0, logoWidth, logoHeight);
   }
 
@@ -220,10 +192,8 @@ function render(_time) {
 
   imageData = hit.ctx.getImageData(0, 0, logoWidth, logoHeight);
 
-  if (flakes.length < 2000) {
-    for (var i = 0; i < 3; i++) 
-      flakes.push( createFlake(flakes.length) );
-  }
+  if (flakes.length < 2000) for (var i = 0; i < 3; i++) flakes.push( createFlake(flakes.length) );
+  // if (flakes.length < 10000) for (var i = 0; i < 300; i++) flakes.push( createFlake(flakes.length) );
 
   ctx.clearRect(0,0,width,height);
   ctx.drawImage(snow.canvas, 0, 0);
@@ -232,30 +202,6 @@ function render(_time) {
     if (flakes[i].moving) flakes[i].move();
   }
 
-  /*
-  drawCircle(100, 180, 40);
-  drawCircle(100, 140, 30);
-  drawCircle(100, 100, 25);
-
-  ctx.fillStyle = "black";
-  drawCircle(92, 92, 5);
-  drawCircle(108, 92, 5);
-
-  // drawHeart(108, 94)
-  ctx.fillStyle = "white";
-  drawRect(295, 170, 15, 30);
-  ctx.fillStyle = "green";
-  drawTriangle(300, 135, 140, 50);
-  drawTriangle(300, 110, 115, 50);
-  drawTriangle(300, 85, 90, 50);
-  drawTriangle(300, 55, 60, 50);
-
-  ctx.fillStyle = "yellow";
-  drawStar(300, 50, 15, 5, 0.3)
-
-  ctx.fillStyle = "white";
-
-  */
   requestAnimationFrame(render);
 }
 
