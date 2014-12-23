@@ -1,6 +1,13 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Merry Christmas from Airtasker</title>
 <style>
-body{ background:#000;}
+body { background:#000;margin:0;padding:0;overflow: hidden;}
 canvas {width:100%;}
+.sharing {text-align: center;}
+.facebook, .twitter { display: inline-block;vertical-align: top;}
 </style>
 <body>
   <script>
@@ -241,7 +248,6 @@ function render(_time) {
     if (flakes[i].moving) flakes[i].move();
   }
 
-
   ctx.drawImage(wishes.canvas, txtX, height - floorDepth);
 
   requestAnimationFrame(render);
@@ -253,4 +259,30 @@ logo.onload = function() {
 }
 logo.src = "at_logo_transparent.gif";
 
-</script></body>
+
+// create twitter
+!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0],p=/^http:/.test(d.location)?'http':'https';if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src=p+'://platform.twitter.com/widgets.js';fjs.parentNode.insertBefore(js,fjs);}}(document, 'script', 'twitter-wjs');
+
+// create fb
+(function(d, s, id) {
+  var js, fjs = d.getElementsByTagName(s)[0];
+  if (d.getElementById(id)) return;
+  js = d.createElement(s); js.id = id;
+  js.src = "//connect.facebook.net/en_US/sdk.js#xfbml=1&version=v2.0";
+  fjs.parentNode.insertBefore(js, fjs);
+}(document, 'script', 'facebook-jssdk'));
+
+</script>
+
+<div id="fb-root"></div>
+<div class='sharing'>
+  <div class='twitter'>
+    <a href="https://twitter.com/share" class="twitter-share-button">Tweet</a>
+  </div>
+  <div class='facebook'>
+    <div class="fb-share-button" data-href="https://www.airtasker.com/merry-christmas/" data-layout="button_count"></div>
+  </div>
+</div>
+
+</body>
+</html>
